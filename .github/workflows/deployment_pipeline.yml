@@ -31,7 +31,6 @@ jobs:
 
   backend_test:
     runs-on: ubuntu-latest
-    needs: frontend_lint_test
     services:
       mongodb:
         image: mongo:latest
@@ -53,7 +52,7 @@ jobs:
 
   e2e_tests:
     runs-on: ubuntu-latest
-    needs: backend_test
+    needs: [frontend_lint_test, backend_test]
     services:
       mongodb:
         image: mongo:latest
@@ -80,12 +79,12 @@ jobs:
         run: |
           cd blogilista
           npm run start:test &
-          sleep 10
+          sleep 3
       - name: Start frontend
         run: |
           cd bloglist-frontend
           npm run dev &
-          sleep 10
+          sleep 3
       - name: Run e2e tests
         run: |
           cd e2e
