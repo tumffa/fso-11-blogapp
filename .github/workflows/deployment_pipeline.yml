@@ -97,26 +97,9 @@ jobs:
     concurrency: deploy-group
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install frontend dependencies
-        run: |
-          cd bloglist-frontend
-          npm install
-      - name: Build frontend
-        run: |
-          cd bloglist-frontend
-          npm run build
-      - name: Copy build to backend
-        run: |
-          rm -rf blogilista/build
-          cp -r bloglist-frontend/dist blogilista/build
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Deploy to Fly.io
-        run: |
-          cd blogilista
-          flyctl deploy --remote-only
+        run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
