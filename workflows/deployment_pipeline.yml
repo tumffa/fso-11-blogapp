@@ -1,0 +1,129 @@
+name: Deployment Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
+
+jobs:
+  frontend_lint_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install frontend dependencies 
+        run: |
+          cd bloglist-frontend
+          npm install
+      - name: Lint frontend
+        run: |
+          cd bloglist-frontend
+          npm run lint
+      - name: Test frontend
+        run: |
+          cd bloglist-frontend
+          npm run test
+
+  backend_test:
+    runs-on: ubuntu-latest
+    needs: frontend_lint_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install backend dependencies
+        run: |
+          cd blogilista
+          npm install
+      - name: Test backend
+        run: |
+          cd blogilista
+          npm run test
+
+  e2e_tests:
+    runs-on: ubuntu-latest
+    needs: backend_test
+    services:
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: |
+          cd bloglist-frontend
+          npm install
+          cd ../blogilista
+          npm install
+          cd ../e2e
+          npm install
+      - name: Install Playwright Browsers
+        run: |
+          cd e2e
+          npx playwright install --with-deps
+      - name: Start backend in test mode
+        run: |
+          cd blogilista
+          npm run start:test &
+          sleep 10
+      - name: Start frontend
+        run: |
+          cd bloglist-frontend
+          npm run dev &
+          sleep 10
+      - name: Run e2e tests
+        run: |
+          cd e2e
+          npm run test
+
+  fly_deployment:
+    runs-on: ubuntu-latest
+    needs: e2e_tests
+    if: ${{ github.event_name == 'push' && !contains(github.event.head_commit.message, '#skip') }}
+    concurrency: deploy-group
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install frontend dependencies
+        run: |
+          cd bloglist-frontend
+          npm install
+      - name: Build frontend
+        run: |
+          cd bloglist-frontend
+          npm run build
+      - name: Copy build to backend
+        run: |
+          rm -rf blogilista/build
+          cp -r bloglist-frontend/dist blogilista/build
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Deploy to Fly.io
+        run: |
+          cd blogilista
+          flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  tag_release:
+    runs-on: ubuntu-latest
+    needs: fly_deployment
+    if: ${{ github.event_name == 'push' && !contains(github.event.head_commit.message, '#skip') }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bump version and push tag
+        uses: anothrNick/github-tag-action@1.64.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch

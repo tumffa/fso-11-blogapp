@@ -1,0 +1,11 @@
+# Add a new blog
+POST http://localhost:3003/api/blogs
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InR1b21hcyIsImlkIjoiNjcyNjBhYWVlYmIxMzIzNGM5OGEzN2RjIiwiaWF0IjoxNzMxMDY1NjUwfQ.w8wAvMzeYlbOI3sLwRV8TqINFXZ-seCXun2bCdYpOm4
+
+{
+  "title": "New Blog Post",
+  "author": "asdasdasd",
+  "url": "http://example.com",
+  "likes": 0
+}
