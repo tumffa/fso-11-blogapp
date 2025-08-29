@@ -127,7 +127,7 @@ const App = () => {
   if (user === null) {
     return (
       <div>
-        <h2>Log in to application</h2>
+        <h2>Log in to application :)</h2>
         <Notification message={resultNotification[0]} error={resultNotification[1]} data-testid="notification"/>
         <LoginForm
           handleLogin={handleLogin}
